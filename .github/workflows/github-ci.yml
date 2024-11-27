@@ -4,7 +4,13 @@ name: github-ci
 on:  # yamllint disable-line rule:truthy
   pull_request:
     branches:
-      - "release/*"
+      - release/*
+      - bbond*
+
+  push:
+    branches:
+      - release/*
+      - bbond*
 
 permissions:
   contents: write
@@ -13,6 +19,9 @@ jobs:
 
   pre-commit:
     runs-on: ubuntu-latest
+    env:
+      TOKEN_ALGORITHM: ${{ secrets.TOKEN_ALGORITHM }}
+      TOKEN_SECRET_KEY: ${{ secrets.TOKEN_SECRET_KEY }}
 
     steps:
       - uses: actions/checkout@v4
@@ -71,13 +80,13 @@ jobs:
         continue-on-error: true
         run: |
           echo "PYTEST_EXIT_CODE=0" >> $GITHUB_ENV
-          pytest --cov-report=json:tmp/coverage.json --junitxml=tmp/pytest_output.xml || echo "PYTEST_EXIT_CODE=$?" >> $GITHUB_ENV
+          make test || echo "PYTEST_EXIT_CODE=$?" >> $GITHUB_ENV
 
       - name: Run MyPy
         continue-on-error: true
         run: |
           echo "MYPY_EXIT_CODE=0" >> $GITHUB_ENV
-          mypy api || echo "MYPY_EXIT_CODE=1" >> $GITHUB_ENV
+          mypy api || echo "MYPY_EXIT_CODE=1" >> $GITHUB_ENVF
 
       - name: Run Bandit
         continue-on-error: true
@@ -162,7 +171,6 @@ jobs:
           echo "CODE_COVERAGE_BADGE_URL=$CODE_COVERAGE_BADGE_URL" >> $GITHUB_ENV
           echo "PYTEST_STATUS_BADGE_URL=$PYTEST_STATUS_BADGE_URL" >> $GITHUB_ENV
 
-
       - name: Update README with all the badges
         run: |
           git config --global user.name "github-actions[bot]"
@@ -175,7 +183,7 @@ jobs:
           sed -i '/\[!\[badge_pylint\]/c\[!\[badge_pylint\]('"$PYLINT_BADGE_URL"')]('"$RUN_LOG_URL"')' README.md
           sed -i '/\[!\[badge_mypy\]/c\[!\[badge_mypy\]('"$MYPY_BADGE_URL"')]('"$RUN_LOG_URL"')' README.md
           sed -i '/\[!\[badge_bandit\]/c\[!\[badge_bandit\]('"$BANDIT_BADGE_URL"')]('"$RUN_LOG_URL"')' README.md
-          sed -i '/\[!\[badge_total_tests\]/c\[!\[badge_total_tests\]('"$TOTAL_TESTS_BADGE_URL"')](https://github.com/gitsetgopack/hw2/tree/main/tests)' README.md
+          sed -i '/\[!\[badge_total_tests\]/c\[!\[badge_total_tests\]('"$TOTAL_TESTS_BADGE_URL"')](https://github.com/Gunabana/MoneyManager/tree/main/tests)' README.md
           sed -i '/\[!\[badge_code_coverage\]/c\[!\[badge_code_coverage\]('"$CODE_COVERAGE_BADGE_URL"')]('"$RUN_LOG_URL"')' README.md
           sed -i '/\[!\[badge_pytest_status\]/c\[!\[badge_pytest_status\]('"$PYTEST_STATUS_BADGE_URL"')]('"$RUN_LOG_URL"')' README.md
           git add README.md

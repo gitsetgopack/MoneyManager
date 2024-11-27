@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up</title>
+    <link rel="stylesheet" href="/static/css/auth.css">
+</head>
+
+<style>
+    body {
+        /* Image Credit: https://www.launch-marketing.com/making-facebook-a-revenue-generator/money-or-finance-green-background-with-3d-dollar-banknotes-pattern-2/ */
+        background-image: url('/backgrounds/AdobeStock_249925233.jpeg');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        height: 100vh;
+        margin: 0;
+    }
+    #titlecard{
+        font-family: 'Arial'; font-size: 12vh;
+        position: absolute;
+        top: 10%;
+        width: 100%;
+        text-align: center;
+        color: white;
+    }
+</style>
+
+<body>
+    <h1 id="titlecard">Money Manager</h1>
+    <div class="signup-container">
+
+        <hr>
+        <h2 style="margin-top: 20px; margin-bottom: 10px; font-size: 20px; text-align: center; color: #333;">Signup</h2>
+        <form id="signup-form">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+
+            <div class="form-group">
+                <label for="confirm-password">Confirm Password</label>
+                <input type="password" id="confirm-password" name="confirm-password" required>
+            </div>
+
+            <button type="submit" class="submit-btn">Sign Up</button>
+            <p style="text-align: center;">Already have an account? <a href="/login/">Login!</a></p>
+        </form>
+        <p style="text-align: center; color: red;" id="error-message"></p>
+    </div>
+
+    <script>
+        document.getElementById('signup-form').addEventListener('submit', async function (event) {
+            event.preventDefault(); // Prevent the form from submitting the usual way
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            const errorMessage = document.getElementById('error-message');
+
+            // Clear any previous error messages
+            errorMessage.style.display = 'none';
+            errorMessage.textContent = '';
+
+            // Check if passwords match
+            if (password !== confirmPassword) {
+                errorMessage.style.display = 'block';
+                errorMessage.textContent = 'Passwords do not match.';
+                errorMessage.style.color = '#d9534f'; // Red color for error
+                return;
+            }
+
+            const userData = {
+                username: username,
+                password: password
+            };
+
+            try {
+                const response = await fetch('/users/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(userData),
+                });
+
+                if (response.ok) {
+                    // Redirect to the login page
+                    window.location.href = '/login';
+                } else {
+                    const error = await response.json();
+                    errorMessage.style.display = 'block';
+                    errorMessage.textContent = 'Error: ' + (error.detail || 'An error occurred during signup.');
+                }
+            } catch (error) {
+                errorMessage.style.display = 'block';
+                errorMessage.textContent = 'An error occurred: ' + error.message;
+            }
+        });
+    </script>
+</body>
+</html>

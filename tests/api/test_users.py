@@ -1,4 +1,3 @@
-# test_user_expenses.py
 import datetime
 from copy import deepcopy
 
@@ -14,8 +13,8 @@ from config import TOKEN_ALGORITHM, TOKEN_SECRET_KEY
 class TestUserCreation:
     async def test_invalid_data(self, async_client: AsyncClient):
         response = await async_client.post(
-            "/users/", json={"username": "", "password": ""}  # Invalid data
-        )
+            "/users/", json={"username": "", "password": ""}
+        )  # Invalid data
         assert response.status_code == 422
         assert response.json()["detail"] == "Invalid credential"
 
@@ -101,7 +100,9 @@ class TestTokenGetter:
             "exp": datetime.datetime.now(datetime.timezone.utc)
             - datetime.timedelta(minutes=1),
         }
-        expired_token = jwt.encode(payload, TOKEN_SECRET_KEY, algorithm=TOKEN_ALGORITHM)
+        expired_token = jwt.encode(
+            payload, str(TOKEN_SECRET_KEY), algorithm=TOKEN_ALGORITHM or "HS256"
+        )
         headers = {"token": expired_token}
 
         # Try to access user details with the expired token
@@ -187,7 +188,9 @@ class TestUserUnauthenticated:
             "exp": datetime.datetime.now(datetime.timezone.utc)
             + datetime.timedelta(minutes=30),
         }
-        fake_token = jwt.encode(payload, TOKEN_SECRET_KEY, algorithm=TOKEN_ALGORITHM)
+        fake_token = jwt.encode(
+            payload, str(TOKEN_SECRET_KEY), algorithm=TOKEN_ALGORITHM or "HS256"
+        )
         headers = {"token": fake_token}
 
         # Try to access user details with the fake token
@@ -236,3 +239,25 @@ class TestUserDelete:
         assert (
             response.json()["message"] == "User deleted successfully"
         ), response.json()
+
+
+@pytest.mark.anyio
+class TestLoginLogout:
+    async def test_login_success(self, async_client: AsyncClient):
+        response = await async_client.post(
+            "/users/", json={"username": "loginuser", "password": "loginpassword"}
+        )
+        assert response.status_code == 200, response.json()
+
+        response = await async_client.post(
+            "/users/login/",
+            data={"username": "loginuser", "password": "loginpassword"},
+        )
+        assert response.status_code == 200, response.json()
+
+    async def test_login_failure_invalid_credentials(self, async_client: AsyncClient):
+        response = await async_client.post(
+            "/users/login/",
+            data={"username": "loginuser", "password": "badpassword"},
+        )
+        assert response.status_code == 401, response.json()

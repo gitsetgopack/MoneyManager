@@ -6,7 +6,7 @@ import datetime
 from typing import Optional
 
 from bson import ObjectId
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import jwt
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -55,7 +55,9 @@ def create_access_token(data: dict, expires_delta: datetime.timedelta):
     to_encode = data.copy()
     expire = datetime.datetime.now(datetime.UTC) + expires_delta
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, TOKEN_SECRET_KEY, algorithm=TOKEN_ALGORITHM)
+    encoded_jwt = jwt.encode(
+        to_encode, str(TOKEN_SECRET_KEY), algorithm=TOKEN_ALGORITHM or "HS256"
+    )
     return encoded_jwt
 
 
@@ -110,6 +112,89 @@ async def create_user(user: UserCreate):
     await accounts_collection.insert_many(default_accounts)
 
     return {"message": "User and default accounts created successfully"}
+
+
+@router.post("/login/")
+async def login(response: Response, form_data: OAuth2PasswordRequestForm = Depends()):
+    """Login a user by generating an access token and saving it in a cookie."""
+    user = await users_collection.find_one({"username": form_data.username})
+    if not user or user["password"] != form_data.password:
+        raise HTTPException(status_code=401, detail="Incorrect username or password")
+
+    # Create access token for the user
+    access_token_expires = datetime.timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": str(user["_id"]), "username": user["username"]},
+        expires_delta=access_token_expires,
+    )
+
+    # Store the token in the database if needed
+    result = await tokens_collection.insert_one(
+        {
+            "user_id": str(user["_id"]),
+            "token": access_token,
+            "expires_at": datetime.datetime.now(datetime.UTC) + access_token_expires,
+            "token_type": "bearer",
+        },
+    )
+
+    if result.inserted_id:
+        token_data = await tokens_collection.find_one({"_id": result.inserted_id})
+        if token_data is None:
+            return {"message": "Error: Token data is missing"}
+
+        # Set the token as a cookie in the response
+        response.set_cookie(
+            key="access_token",
+            # value=token_data["token"],
+            value=access_token,
+            expires=datetime.datetime.now(datetime.UTC) + access_token_expires,
+            httponly=True,  # This ensures the cookie is not accessible via JavaScript
+            secure=False,  # Set to True if using HTTPS, False if HTTP (such as local hosting)
+            samesite="strict",  # Prevents the cookie from being sent with cross-site requests
+        )
+        return {"message": "Login successful", "access_token": token_data["token"]}
+
+    raise HTTPException(status_code=500, detail="Failed to create token")
+
+
+@router.post("/logout/")
+async def logout(response: Response, request: Request):
+    """Logout a user by deleting their token."""
+    # Get the token from the cookie
+    token = request.cookies.get("access_token")
+    if not token:
+        raise HTTPException(status_code=401, detail="No access token found")
+
+    # Verify the token
+    user_id = await verify_token(token)
+
+    # Delete the token from the database
+    result = await tokens_collection.delete_one({"user_id": user_id, "token": token})
+
+    if result.deleted_count == 1:
+        # ensure parameters match between login and logout for setting the cookie
+        response.set_cookie(  # invalidate the cookie
+            "access_token",
+            expires=datetime.datetime.now(datetime.UTC) - datetime.timedelta(days=1),
+            max_age=0,
+            httponly=True,
+            secure=False,
+            samesite="strict",
+            path="/",
+        )
+        return {"message": "Logout successful"}
+
+    raise HTTPException(status_code=400, detail="Failed to logout")
+
+
+async def get_username(token: str):
+    """Get user's username."""
+    user_id = await verify_token(token)
+    user = await users_collection.find_one({"_id": ObjectId(user_id)})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user.get("username")
 
 
 @router.get("/")

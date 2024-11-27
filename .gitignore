@@ -141,7 +141,9 @@ expense_record.json
 user.properties
 
 # Virtual environment files
-myenv/*
+myenv*
+venv*
+myvenv*
 
 # Don't include patch reject files or patches
 *.rej
@@ -152,3 +154,6 @@ myenv/*
 *data.csv
 expense_history.pdf
 histo.png
+
+# temp files and folders
+tmp*

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/css/home.css">
+    <title>Money Manager - Pie Chart</title>
+    <style>
+        .chart-container {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+        }
+
+    </style>
+</head>
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="container">
+        <p>Welcome, {{username}}.</p>
+
+        <h2>Generate Pie Chart</h2>
+        <div class="form-container">
+            <input type="number" id="chart-days" placeholder="Enter number of days" required>
+            <button id="generate-chart-btn">Generate Chart</button>
+            <div id="error-message" class="error-message"></div>
+        </div>
+
+        <div id="chart-container" class="chart-container">
+            <p id="chart-placeholder"></p>
+            <img id="chart-image" alt="Pie Chart" style="display:none;">
+        </div>
+    </div>
+
+    <script>
+        async function generatePieChart() {
+            const days = document.getElementById("chart-days").value.trim();
+            const token = localStorage.getItem("access_token");
+
+            if (!token) {
+                alert("You need to log in first.");
+                window.location.href = "/login";
+                return;
+            }
+
+            if (!days || isNaN(days) || days <= 0) {
+                document.getElementById("error-message").textContent =
+                    "Please enter a valid number of days.";
+                return;
+            }
+
+            const apiUrl = `/analytics/expense/pie?x_days=${days}`;
+
+            try {
+                document.getElementById("error-message").textContent = "";
+                document.getElementById("chart-placeholder").textContent = "Loading chart...";
+                document.getElementById("chart-image").style.display = "none";
+
+                // Fetch the HTML response from the backend
+                const response = await fetch(apiUrl, {
+                    method: "GET",
+                    headers: {
+                        token: token, // Pass the token in the headers
+                        "Content-Type": "text/html",
+                    },
+                });
+
+                if (response.ok) {
+                    const htmlContent = await response.text(); // Retrieve the HTML content
+
+                    // Inject the HTML into a placeholder div
+                    const chartPlaceholder = document.getElementById("chart-placeholder");
+                    chartPlaceholder.innerHTML = htmlContent; // Render the HTML response
+                    chartPlaceholder.style.display = "block";
+
+                    // Hide the static chart image (if any)
+                    document.getElementById("chart-image").style.display = "none";
+                } else {
+                    const errorText = await response.text(); // Get the error HTML content
+                    console.error("Error response from server:", errorText);
+
+                    document.getElementById("error-message").textContent =
+                        "Failed to fetch pie chart. Please ensure you have expenses entered or try again later.";
+                }
+            } catch (error) {
+                document.getElementById("error-message").textContent =
+                    "An error occurred. Please try again later.";
+                console.error("Error:", error.message);
+            }
+        }
+
+        document
+            .getElementById("generate-chart-btn")
+            .addEventListener("click", generatePieChart);
+    </script>
+
+{% endblock %}
+</html>

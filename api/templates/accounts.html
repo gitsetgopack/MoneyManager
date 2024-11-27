@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="/static/css/home.css">
+    <link rel="stylesheet" href="/static/css/buttons.css">
+    <title>Money Manager</title>
+    <style>
+        .account-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .account-item {
+            padding: 10px;
+            border: 3px solid #078b00;
+            margin-bottom: 5px;
+            border-radius: 5px;
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .form-container {
+            display: none; /* Initially hidden */
+        }
+
+        .form-container.active {
+            display: block; /* Show form when active */
+        }
+    </style>
+</head>
+
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1>Welcome, {{ username }}.</h1>
+
+    <h2>Accounts
+        <button id="edit-account-btn" class="edit-btn">Edit</button>
+        <button id="new-account-btn" class="new-btn">New</button>
+    </h2>
+
+    <ul id="accounts" class="account-list"></ul>
+
+    <div id="account-form" class="form-container">
+        <h3>Add New Account</h3>
+        <input class="input-box" type="text" id="account-name" placeholder="Account Name" required>
+        <input class="input-box" type="number" id="account-balance" placeholder="Account Balance" required>
+        <input class="input-box" type="text" id="account-currency" placeholder="Currency (e.g., USD)" required>
+        <button id="add-account-btn">Add Account</button>
+        <div id="error-message" class="error-message"></div>
+    </div>
+</div>
+
+<script>
+    let editMode = false;
+
+    async function fetchAndDisplayAccounts() {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            alert('You need to log in first.');
+            window.location.href = '/login';
+            return;
+        }
+
+        try {
+            const response = await fetch('/accounts/', {
+                method: 'GET',
+                headers: {
+                    'token': token,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                displayAccounts(data.accounts);
+            } else {
+                const error = await response.json();
+                document.getElementById('error-message').textContent = error.detail || 'Failed to fetch accounts.';
+            }
+        } catch (error) {
+            document.getElementById('error-message').textContent = 'An error occurred. Please try again later.';
+        }
+    }
+
+    function displayAccounts(accounts) {
+        const accountsList = document.getElementById('accounts');
+        accountsList.innerHTML = '';
+
+        if (accounts.length === 0) {
+            accountsList.innerHTML = '<li>No accounts found.</li>';
+            return;
+        }
+
+        accounts.forEach(account => {
+            const accountItem = document.createElement('li');
+            accountItem.className = 'account-item';
+
+            const accountInfo = document.createElement('span');
+            accountInfo.textContent = `Name: ${account.name}, Balance: ${account.balance}, Currency: ${account.currency}`;
+
+            accountItem.appendChild(accountInfo);
+
+            if (editMode) {
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-btn';
+                deleteBtn.textContent = 'Delete';
+                deleteBtn.addEventListener('click', () => confirmDeletion(account._id));
+                accountItem.appendChild(deleteBtn);
+            }
+
+            accountsList.appendChild(accountItem);
+        });
+    }
+
+    async function addAccount() {
+        const name = document.getElementById('account-name').value.trim();
+        const balance = parseFloat(document.getElementById('account-balance').value.trim());
+        const currency = document.getElementById('account-currency').value.trim();
+        const token = localStorage.getItem('access_token');
+
+        if (!name || isNaN(balance) || !currency) {
+            document.getElementById('error-message').textContent = 'All fields are required and must be valid.';
+            return;
+        }
+
+        try {
+            const response = await fetch('/accounts/', {
+                method: 'POST',
+                headers: {
+                    'token': token,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: name,
+                    balance: balance,
+                    currency: currency
+                })
+            });
+
+            if (response.ok) {
+                fetchAndDisplayAccounts(); // Refresh account list
+                document.getElementById('account-name').value = '';
+                document.getElementById('account-balance').value = '';
+                document.getElementById('account-currency').value = '';
+                document.getElementById('error-message').textContent = '';
+            } else {
+                const error = await response.json();
+                document.getElementById('error-message').textContent = error.detail || 'Failed to add account.';
+            }
+        } catch (error) {
+            document.getElementById('error-message').textContent = 'An error occurred. Please try again later.';
+        }
+    }
+
+    function toggleFormVisibility() {
+        document.getElementById('account-form').classList.toggle('active');
+    }
+
+    function toggleEditMode() {
+        editMode = !editMode;
+        fetchAndDisplayAccounts();
+    }
+
+    async function confirmDeletion(accountId) {
+        const confirmation = window.confirm('Are you sure you want to delete this account?');
+        if (confirmation) {
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch(`/accounts/${accountId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'token': token,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    fetchAndDisplayAccounts(); // Refresh account list
+                } else {
+                    const error = await response.json();
+                    alert(error.detail || 'Failed to delete account.');
+                }
+            } catch (error) {
+                alert('An error occurred while deleting the account.');
+            }
+        }
+    }
+
+    document.getElementById('add-account-btn').addEventListener('click', addAccount);
+    document.getElementById('new-account-btn').addEventListener('click', toggleFormVisibility);
+    document.getElementById('edit-account-btn').addEventListener('click', toggleEditMode);
+
+    // Load accounts on page load
+    window.onload = fetchAndDisplayAccounts;
+</script>
+{% endblock %}
+</html>

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/home.css') }}">
+    <title>Money Manager</title>
+</head>
+<body>
+    <header>
+        <nav id="navbar" class="navbar navbar-expand-sm navbar-dark sticky-top" style="background-color: #4CAF50">
+            <div class="container-fluid">
+                <nav class="main-nav">
+                    <a class="navbar-brand" href="/landing">
+                        <img src="logo/MoneyManagerLOGO.png" alt="Logo" style="padding-left: 10px;" >
+                    </a>
+                    <a href="/landing" style="height: auto;"></a>
+                    <a href="/landing">Accounts</a>
+                    <a href="/categories">Categories</a>
+                    <a href="/expenses">Expenses</a>
+                    <div class="dropdown">
+                        <button class="dropbtn">Data Chart's
+                          <i class="fa fa-caret-down"></i>
+                        </button>
+                        <div class="dropdown-content">
+                            <a href="/barchart">Barchart</a>
+                            <a href="/piechart">Piechart</a>
+                        </div>
+                    </div>
+                    <a href="/logout" class="split">Logout</a>
+                </nav>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        {% block content %}
+        <!-- This is where child templates will inject their content -->
+        {% endblock %}
+    </main>
+
+    <footer>
+        <p>© 2024 Money Manager. All rights reserved.</p>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="/static/css/home.css">
+    <link rel="stylesheet" href="/static/css/buttons.css">
+    <title>Money Manager - Categories</title>
+    <style>
+        .category-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .category-item {
+            padding: 10px;
+            border: 3px solid #078b00;
+            margin-bottom: 5px;
+            border-radius: 5px;
+            background-color: #f5f5f5;
+        }
+
+        .form-container {
+            display: none;
+        }
+    </style>
+</head>
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="container">
+        <h2>
+            Categories
+            <button id="edit-categories-btn" class="edit-btn">Edit</button>
+            <button id="new-category-btn" class="new-btn">New</button>
+        </h2>
+        <ul id="categories" class="category-list"></ul>
+
+        <div class="form-container" id="category-form">
+            <input type="text" id="category-name" placeholder="Category Name" required>
+            <input type="number" id="category-budget" placeholder="Monthly Budget" required>
+            <button id="save-category-btn">Save</button>
+            <button id="cancel-category-btn">Cancel</button>
+            <div id="error-message" class="error-message"></div>
+        </div>
+    </div>
+
+    <script>
+        let isEditing = false;
+        let editingCategoryName = null;
+
+        async function fetchAndDisplayCategories() {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                alert('You need to log in first.');
+                window.location.href = '/login';
+                return;
+            }
+
+            try {
+                const response = await fetch('/categories/', {
+                    method: 'GET',
+                    headers: {
+                        'token': token,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    displayCategories(data.categories);
+                } else {
+                    const error = await response.json();
+                    document.getElementById('error-message').textContent = error.detail || 'Failed to fetch categories.';
+                }
+            } catch (error) {
+                document.getElementById('error-message').textContent = 'An error occurred. Please try again later.';
+            }
+        }
+
+        function displayCategories(categories) {
+            const categoriesList = document.getElementById('categories');
+            categoriesList.innerHTML = '';
+
+            if (!categories || Object.keys(categories).length === 0) {
+                categoriesList.innerHTML = '<li>No categories found.</li>';
+                return;
+            }
+
+            Object.entries(categories).forEach(([name, details]) => {
+                const categoryItem = document.createElement('li');
+                categoryItem.className = 'category-item';
+                categoryItem.innerHTML = `
+                    <span>Name: ${name}, Monthly Budget: ${details.monthly_budget}</span>
+                    <button class="delete-btn" onclick="deleteCategory('${name}')">Delete</button>
+                    <button class="update-btn" onclick="showUpdateForm('${name}', ${details.monthly_budget})">Update</button>
+                `;
+                categoriesList.appendChild(categoryItem);
+            });
+
+            toggleEditButtons();
+            toggleDeleteButtons();
+        }
+
+        async function addCategory() {
+            const name = document.getElementById('category-name').value.trim();
+            const monthly_budget = parseFloat(document.getElementById('category-budget').value.trim());
+            const token = localStorage.getItem('access_token');
+
+            if (!name || isNaN(monthly_budget)) {
+                document.getElementById('error-message').textContent = 'All fields are required and must be valid.';
+                return;
+            }
+
+            try {
+                const response = await fetch('/categories/', {
+                    method: 'POST',
+                    headers: {
+                        'token': token,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: name,
+                        monthly_budget: monthly_budget
+                    })
+                });
+
+                if (response.ok) {
+                    fetchAndDisplayCategories(); // Refresh category list
+                    document.getElementById('category-name').value = '';
+                    document.getElementById('category-budget').value = '';
+                    document.getElementById('error-message').textContent = '';
+                } else {
+                    const error = await response.json();
+                    document.getElementById('error-message').textContent = error.detail || 'Failed to add category.';
+                }
+            } catch (error) {
+                document.getElementById('error-message').textContent = 'An error occurred. Please try again later.';
+            }
+        }
+
+        async function deleteCategory(categoryName) {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                alert('You need to log in first.');
+                window.location.href = '/login';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/categories/${categoryName}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'token': token,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    fetchAndDisplayCategories(); // Refresh category list
+                } else {
+                    const error = await response.json();
+                    alert(error.detail || 'Failed to delete category.');
+                }
+            } catch (error) {
+                alert('An error occurred while deleting the category. Please try again later.');
+            }
+        }
+
+        function showAddForm() {
+            document.getElementById('category-form').style.display = 'block';
+            document.getElementById('category-name').value = '';
+            document.getElementById('category-budget').value = '';
+            document.getElementById('save-category-btn').textContent = 'Add Category';
+        }
+
+        function hideAddForm() {
+            document.getElementById('category-form').style.display = 'none';
+        }
+
+        function showUpdateForm(name, monthly_budget) {
+            document.getElementById('category-name').value = name;
+            document.getElementById('category-budget').value = monthly_budget;
+            editingCategoryName = name;
+            document.getElementById('category-form').style.display = 'block';
+            document.getElementById('save-category-btn').textContent = 'Update Category';
+        }
+
+        async function updateCategory() {
+            const updatedName = document.getElementById('category-name').value.trim();
+            const updatedBudget = parseFloat(document.getElementById('category-budget').value.trim());
+            const token = localStorage.getItem('access_token');
+
+            if (!updatedName || isNaN(updatedBudget)) {
+                document.getElementById('error-message').textContent = 'Both fields are required and must be valid.';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/categories/${editingCategoryName}`, {
+                    method: 'PUT',
+                    headers: {
+                        'token': token,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: updatedName,
+                        monthly_budget: updatedBudget
+                    })
+                });
+
+                if (response.ok) {
+                    fetchAndDisplayCategories(); // Refresh the category list
+                    hideAddForm(); // Hide the form after successful update
+                } else {
+                    const error = await response.json();
+                    alert(error.detail || 'Failed to update category.');
+                }
+            } catch (error) {
+                alert('An error occurred while updating the category. Please try again later.');
+            }
+        }
+
+        function toggleEditButtons() {
+            isEditing = !isEditing;
+            const editButtons = document.querySelectorAll('.edit-btn');
+            editButtons.forEach((btn) => {
+                btn.style.display = isEditing ? 'inline' : 'inline';
+            });
+            toggleDeleteButtons(); // Update delete and update buttons visibility when edit mode is toggled
+        }
+
+        function toggleDeleteButtons() {
+            const deleteButtons = document.querySelectorAll('.delete-btn');
+            const updateButtons = document.querySelectorAll('.update-btn');
+            deleteButtons.forEach((btn) => {
+                btn.style.display = isEditing ? 'none' : 'inline';
+            });
+            updateButtons.forEach((btn) => {
+                btn.style.display = isEditing ? 'none' : 'inline';
+            });
+        }
+
+        document.getElementById('edit-categories-btn').addEventListener('click', toggleEditButtons);
+        document.getElementById('new-category-btn').addEventListener('click', showAddForm);
+        document.getElementById('cancel-category-btn').addEventListener('click', hideAddForm);
+        document.getElementById('save-category-btn').addEventListener('click', function() {
+            if (document.getElementById('save-category-btn').textContent === 'Add Category') {
+                addCategory();
+            } else {
+                updateCategory();
+            }
+        });
+
+        window.onload = fetchAndDisplayCategories;
+    </script>
+{% endblock %}

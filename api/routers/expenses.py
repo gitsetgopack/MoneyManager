@@ -3,11 +3,15 @@ This module provides endpoints for managing user expenses in the Money Manager a
 """
 
 import datetime
+import io
 from typing import Optional
 
+import chardet
+import pandas as pd
 from bson import ObjectId
 from currency_converter import CurrencyConverter  # type: ignore
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, File, Header, HTTPException, UploadFile
+from fastapi.responses import StreamingResponse
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel
 
@@ -392,3 +396,157 @@ async def update_expense(
             "balance": new_balance,
         }
     raise HTTPException(status_code=500, detail="Failed to update expense")
+
+
+@router.get("/export/excel")
+async def export_expenses_to_excel(token: str = Header(None)):
+    """Export expense data to an Excel file"""
+    user_id = await verify_token(token)
+    expenses = await expenses_collection.find({"user_id": user_id}).to_list(None)
+
+    if not expenses:
+        raise HTTPException(status_code=404, detail="No expenses found.")
+
+    # Convert MongoDB documents to DataFrame
+    for expense in expenses:
+        expense["_id"] = str(
+            expense["_id"]
+        )  # Convert ObjectId to string for compatibility
+
+    df = pd.DataFrame(expenses)
+
+    # Drop '_id' and 'user_id' columns
+    df.drop(columns=["_id", "user_id"], inplace=True, errors="ignore")
+
+    # Move 'description' column to the first position
+    if "description" in df.columns:
+        description_column = df.pop(
+            "description"
+        )  # Remove and get 'description' column
+        df.insert(
+            0, "description", description_column
+        )  # Insert it at the first position
+
+    # Create an in-memory file
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name="Expenses")
+        # workbook = writer.book
+        sheet = writer.sheets["Expenses"]
+
+        # Auto-adjust column width
+        for column_cells in sheet.columns:
+            max_length = 0
+            column_letter = column_cells[0].column_letter  # Get column letter
+            for cell in column_cells:
+                try:
+                    if cell.value:
+                        max_length = max(max_length, len(str(cell.value)))
+                except:  # pylint: disable=W0702  # nosec B110
+                    pass
+            adjusted_width = max_length + 2
+            sheet.column_dimensions[column_letter].width = adjusted_width
+
+    output.seek(0)
+
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=expenses.xlsx"},
+    )
+
+
+@router.post("/import/csv")
+async def import_expenses_from_csv(
+    token: str = Header(None), file: UploadFile = File(...)
+):
+    """
+    Import expenses from a CSV file.
+
+    Args:
+        token (str): Authentication token.
+        file (UploadFile): The uploaded CSV file.
+
+    Returns:
+        dict: Message indicating success or failure.
+    """
+    user_id = await verify_token(token)
+
+    if file.content_type != "text/csv":
+        raise HTTPException(
+            status_code=400, detail="Invalid file format. Please upload a CSV file."
+        )
+
+    try:
+        content = await file.read()
+        result = chardet.detect(content)
+        encoding = result["encoding"]
+
+        # Read the CSV file
+        df = pd.read_csv(io.BytesIO(content), encoding=encoding)
+
+        # Validate required columns
+        required_columns = {
+            "description",
+            "amount",
+            "currency",
+            "category",
+            "account_name",
+            "date",
+        }
+        if not required_columns.issubset(df.columns):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Missing required columns. Expected: {', '.join(required_columns)}",
+            )
+
+        # Drop rows where all fields are NaN
+        df = df.dropna(how="all")
+
+        # Ensure 'date' column is properly formatted
+        df["date"] = pd.to_datetime(
+            df["date"], errors="coerce"
+        )  # Convert invalid dates to NaT
+
+        # Drop rows with missing required fields
+        required_fields = [
+            "description",
+            "amount",
+            "currency",
+            "category",
+            "account_name",
+            "date",
+        ]
+        df = df.dropna(subset=required_fields)
+
+        # Process each row and add expenses to the database
+        for _, row in df.iterrows():
+            expense = {
+                "description": row["description"],
+                "amount": row["amount"],
+                "currency": row["currency"].upper(),
+                "category": row["category"],
+                "account_name": row["account_name"],
+                "date": row["date"],  # Already converted to datetime
+                "user_id": user_id,
+            }
+
+            # Check if the account exists for the user
+            account = await accounts_collection.find_one(
+                {"user_id": user_id, "name": expense["account_name"]}
+            )
+            if not account:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid account name: {expense['account_name']}",
+                )
+
+            # Insert expense into the database
+            await expenses_collection.insert_one(expense)
+
+        return {"message": "Expenses imported successfully."}
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to process CSV: {str(e)}"
+        ) from e

@@ -17,7 +17,9 @@ async def verify_token(token: str):
     if token is None:
         raise HTTPException(status_code=401, detail="Token is missing")
     try:
-        payload = jwt.decode(token, TOKEN_SECRET_KEY, algorithms=[TOKEN_ALGORITHM])
+        payload = jwt.decode(
+            token, str(TOKEN_SECRET_KEY), algorithms=[TOKEN_ALGORITHM or "HS256"]
+        )
         user_id = payload.get("sub")
         token_exists = await tokens_collection.find_one(
             {"user_id": user_id, "token": token}

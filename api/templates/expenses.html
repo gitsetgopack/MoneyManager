@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="/static/css/home.css">
+    <link rel="stylesheet" href="/static/css/buttons.css">
+
+    <title>Money Manager - Expenses</title>
+    <style>
+        .expense-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .expense-item {
+            padding: 10px;
+            border: 2px solid #710000;
+            margin-bottom: 5px;
+            border-radius: 5px;
+            background-color: #f5f5f5;
+            position: relative;
+        }
+
+        .form-container {
+            display: none; /* Initially hidden */
+            margin-top: 20px;
+        }
+
+        .form-container.active {
+            display: block; /* Show form when active */
+        }
+    </style>
+</head>
+
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="container">
+        <h2>Expenses
+            <button id="edit-expense-btn" class="edit-btn">Edit</button>
+            <button id="new-expense-btn" class="new-btn">New</button>
+            <button id="download-excel-btn" class="download-btn">Download Excel</button>
+            <input type="file" id="csv-file-input" class="csv-upload" accept=".csv">
+            <button id="import-csv-btn" class="import-btn">Import CSV</button>
+        </h2>
+
+        <ul id="expenses" class="expense-list"></ul>
+        <div id="expense-form" class="form-container">
+            <h3>Add New Expense</h3>
+            <input type="text" id="expense-description" placeholder="Expense Description" required>
+            <input type="number" id="expense-amount" placeholder="Amount" required>
+            <input type="text" id="expense-currency" placeholder="Currency (e.g., USD)" required>
+            <input type="text" id="expense-category" placeholder="Category (e.g., Food)" required>
+            <input type="text" id="expense-account" placeholder="Account Name (e.g., Checking)" required>
+            <input type="date" id="expense-date" required>
+            <button id="add-expense-btn">Add Expense</button>
+            <button id="cancel-btn" class="cancel-btn">Cancel</button>
+            <div id="error-message" class="error-message"></div>
+        </div>
+    </div>
+
+    <script>
+        let isEditing = false;
+
+        document.getElementById('import-csv-btn').addEventListener('click', async () => {
+            const fileInput = document.getElementById('csv-file-input');
+            const file = fileInput.files[0];
+            const token = localStorage.getItem('access_token');
+
+            if (!file) {
+                alert('Please select a CSV file to upload.');
+                return;
+            }
+
+            if (!token) {
+                alert('You need to log in first.');
+                window.location.href = '/login';
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/expenses/import/csv', {
+                    method: 'POST',
+                    headers: {
+                        'token': token
+                    },
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    alert(result.message);
+                    fetchAndDisplayExpenses(); // Refresh the expenses list
+                } else {
+                    const error = await response.json();
+                    alert(error.detail || 'Failed to import expenses.');
+                }
+            } catch (error) {
+                alert('An error occurred. Please try again later.');
+            }
+        });
+
+
+        document.getElementById('download-excel-btn').addEventListener('click', async () => {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                alert('You need to log in first.');
+                window.location.href = '/login';
+                return;
+            }
+
+            try {
+                const response = await fetch('/expenses/export/excel', {
+                    method: 'GET',
+                    headers: {
+                        'token': token
+                    }
+                });
+
+                if (response.ok) {
+                    // Create a Blob from the response
+                    const blob = await response.blob();
+
+                    // Create a download link
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = window.URL.createObjectURL(blob);
+                    downloadLink.download = 'expenses.xlsx';
+                    downloadLink.click();
+                } else {
+                    const error = await response.json();
+                    alert(error.detail || 'Failed to download Excel file.');
+                }
+            } catch (error) {
+                alert('An error occurred. Please try again later.');
+            }
+        });
+
+
+        async function fetchAndDisplayExpenses() {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                alert('You need to log in first.');
+                window.location.href = '/login';
+                return;
+            }
+
+            try {
+                const response = await fetch('/expenses/', {
+                    method: 'GET',
+                    headers: {
+                        'token': token,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    displayExpenses(data.expenses);
+                } else {
+                    const error = await response.json();
+                    document.getElementById('error-message').textContent = error.detail || 'Failed to fetch expenses.';
+                }
+            } catch (error) {
+                document.getElementById('error-message').textContent = 'An error occurred. Please try again later.';
+            }
+        }
+
+        function displayExpenses(expenses) {
+            const expensesList = document.getElementById('expenses');
+            expensesList.innerHTML = '';
+
+            if (!expenses || expenses.length === 0) {
+                expensesList.innerHTML = '<li>No expenses found.</li>';
+                return;
+            }
+
+            expenses.forEach(expense => {
+                const expenseItem = document.createElement('li');
+                expenseItem.className = 'expense-item';
+                expenseItem.id = `expense-${expense.id}`;
+
+                expenseItem.innerHTML = `
+                    Description: ${expense.description},
+                    Amount: ${expense.amount} ${expense.currency},
+                    Category: ${expense.category},
+                    Account: ${expense.account_name},
+                    Date: ${new Date(expense.date).toLocaleDateString()}
+                     <button class="delete-btn" onclick="deleteExpense('${expense._id}')">Delete</button>
+                `;
+
+                // Initially, hide delete buttons if not in edit mode
+                if (!isEditing) {
+                    expenseItem.querySelector('.delete-btn').style.display = 'none';
+                }
+
+                expensesList.appendChild(expenseItem);
+            });
+        }
+
+        async function deleteExpense(expenseId) {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                alert('You need to log in first.');
+                window.location.href = '/login';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/expenses/${expenseId}/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'token': token,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    fetchAndDisplayExpenses(); // Refresh expense list
+                } else {
+                    const error = await response.json();
+                    document.getElementById('error-message').textContent = error.detail || 'Failed to delete expense.';
+                }
+            } catch (error) {
+                document.getElementById('error-message').textContent = 'An error occurred. Please try again later.';
+            }
+        }
+
+        async function addExpense() {
+            const description = document.getElementById('expense-description').value.trim();
+            const amount = parseFloat(document.getElementById('expense-amount').value.trim());
+            const currency = document.getElementById('expense-currency').value.trim();
+            const category = document.getElementById('expense-category').value.trim();
+            const accountName = document.getElementById('expense-account').value.trim();
+            const date = document.getElementById('expense-date').value;
+            const token = localStorage.getItem('access_token');
+
+            if (!description || isNaN(amount) || !currency || !category || !accountName || !date) {
+                document.getElementById('error-message').textContent = 'All fields are required and must be valid.';
+                return;
+            }
+
+            try {
+                const response = await fetch('/expenses/', {
+                    method: 'POST',
+                    headers: {
+                        'token': token,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        description: description,
+                        amount: amount,
+                        currency: currency,
+                        category: category,
+                        account_name: accountName,
+                        date: date
+                    })
+                });
+
+                if (response.ok) {
+                    fetchAndDisplayExpenses(); // Refresh expense list
+                    resetForm();
+                } else {
+                    const error = await response.json();
+                    document.getElementById('error-message').textContent = error.detail || 'Failed to add expense.';
+                }
+            } catch (error) {
+                document.getElementById('error-message').textContent = 'An error occurred. Please try again later.';
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('expense-description').value = '';
+            document.getElementById('expense-amount').value = '';
+            document.getElementById('expense-currency').value = '';
+            document.getElementById('expense-category').value = '';
+            document.getElementById('expense-account').value = '';
+            document.getElementById('expense-date').value = '';
+            document.getElementById('error-message').textContent = '';
+            document.getElementById('expense-form').classList.remove('active');
+        }
+
+        function toggleFormVisibility() {
+            document.getElementById('expense-form').classList.toggle('active');
+        }
+
+        function toggleEditMode() {
+            isEditing = !isEditing;
+            const deleteButtons = document.querySelectorAll('.delete-btn');
+            deleteButtons.forEach(button => {
+                button.style.display = isEditing ? 'inline' : 'none';
+            });
+        }
+
+        document.getElementById('add-expense-btn').addEventListener('click', addExpense);
+        document.getElementById('new-expense-btn').addEventListener('click', toggleFormVisibility);
+        document.getElementById('cancel-btn').addEventListener('click', resetForm);
+        document.getElementById('edit-expense-btn').addEventListener('click', toggleEditMode);
+
+        // Load expenses on page load
+        window.onload = fetchAndDisplayExpenses;
+    </script>
+{% endblock %}
+
+</html>

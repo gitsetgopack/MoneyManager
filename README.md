@@ -2,7 +2,28 @@
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
-- [Money Manager](#money-manager) is a tool designed to help you track and manage your finances effectively. With a range of features for visualizing expenses and monitoring account balances, it offers a clear view of your spending patterns and financial health.
+- [Money Manager](#money-manager)
+  - [Project Overview](#project-overview)
+    - [Quality](#quality)
+    - [Standards](#standards)
+    - [Stats](#stats)
+  - [Features](#features)
+  - [Usage](#usage)
+  - [Tech Stack](#tech-stack)
+  - [Tools](#tools)
+  - [Installation](#installation)
+    - [Webapp](#webapp)
+    - [Telegram: Preinstall](#telegram-preinstall)
+    - [Telegram: Installation](#telegram-installation)
+    - [Testing](#testing)
+    - [Code Coverage](#code-coverage)
+  - [Configuration](#configuration)
+  - [Troubleshooting](#troubleshooting)
+  - [🚀 Future Enhancements](#-future-enhancements)
+  - [Contributing](#contributing)
+  - [LICENSE](#license)
+  - [🤝 Contributors](#-contributors)
+  - [Code of Conduct](#code-of-conduct)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -10,7 +31,6 @@
 <div align="center">
   <img src="docs/logo/logo.png" alt="Project Logo" width="300"/>
 </div>
-
 
 A REST API application for managing expenses. Build your own automation—be it a Telegram bot 🤖, Discord bot, or your own app 📱!
 
@@ -20,9 +40,6 @@ A REST API application for managing expenses. Build your own automation—be it 
   <img src="http://ForTheBadge.com/images/badges/built-with-love.svg" alt="built_with_love"/>
 </div>
 
-
-
-
 ---
 
 ## Project Overview
@@ -31,53 +48,47 @@ https://github.com/user-attachments/assets/91fdf9e0-9489-4e05-ab61-a7599e5463e1
 
 ### Quality
 
-[![badge_pytest_status](https://img.shields.io/badge/PyTest-passing-brightgreen?style=plastic&logo=pytest&logoColor=white)](https://github.com/gitsetgopack/MoneyManager/actions/runs/11639575982)
-[![badge_code_coverage](https://img.shields.io/badge/coverage-95%25-brightgreen?style=plastic)](https://github.com/gitsetgopack/MoneyManager/actions/runs/11639575982)
-[![badge_total_tests](https://img.shields.io/badge/tests-111-blue?style=plastic&logo=pytest&logoColor=white)](https://github.com/gitsetgopack/hw2/tree/main/tests)
-[![badge_pylint](https://img.shields.io/badge/pylint-10.00-brightgreen?style=plastic)](https://github.com/gitsetgopack/MoneyManager/actions/runs/11639575982)
-[![badge_black](https://img.shields.io/badge/black_formatter-passing-brightgreen?style=plastic&labelColor=black)](https://github.com/gitsetgopack/MoneyManager/actions/runs/11639575982)
-[![badge_mypy](https://img.shields.io/badge/mypy-passing-brightgreen?style=plastic)](https://github.com/gitsetgopack/MoneyManager/actions/runs/11639575982)
-[![badge_bandit](https://img.shields.io/badge/bandit-passing-brightgreen?style=plastic)](https://github.com/gitsetgopack/MoneyManager/actions/runs/11639575982)
+[![badge_pytest_status](https://img.shields.io/badge/PyTest-passing-brightgreen?style=plastic&logo=pytest&logoColor=white)](https://github.com/Gunabana/MoneyManager/actions/runs/12042743832)
+[![badge_code_coverage](https://img.shields.io/badge/coverage-92%25-brightgreen?style=plastic)](https://github.com/Gunabana/MoneyManager/actions/runs/12042743832)
+[![badge_total_tests](https://img.shields.io/badge/tests-132-blue?style=plastic&logo=pytest&logoColor=white)](https://github.com/Gunabana/MoneyManager/tree/main/tests)
+[![badge_pylint](https://img.shields.io/badge/pylint-10.00-brightgreen?style=plastic)](https://github.com/Gunabana/MoneyManager/actions/runs/12042743832)
+[![badge_black](https://img.shields.io/badge/black_formatter-passing-brightgreen?style=plastic&labelColor=black)](https://github.com/Gunabana/MoneyManager/actions/runs/12042743832)
+[![badge_mypy](https://img.shields.io/badge/mypy-passing-brightgreen?style=plastic)](https://github.com/Gunabana/MoneyManager/actions/runs/12042743832)
+[![badge_bandit](https://img.shields.io/badge/bandit-passing-brightgreen?style=plastic)](https://github.com/Gunabana/MoneyManager/actions/runs/12042743832)
 
 ### Standards
 
 ![black](https://img.shields.io/badge/code%20style-black-black?style=plastic&)
-![license](https://img.shields.io/github/license/gitsetgopack/MoneyManager?style=plastic&)
+![license](https://img.shields.io/github/license/Gunabana/MoneyManager?style=plastic&)
 ![maintained](https://img.shields.io/badge/Maintained%3F-yes-green.svg?style=plastic&)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14027400.svg)](https://doi.org/10.5281/zenodo.14027400)
-
+<!-- TODO: UPDATED DOI -->
 
 ### Stats
-
-![pr_open](https://img.shields.io/github/issues-pr/gitsetgopack/MoneyManager?style=plastic&)
-![pr_close](https://img.shields.io/github/issues-pr-closed/gitsetgopack/MoneyManager?style=plastic&)
-![issue_open](https://img.shields.io/github/issues/gitsetgopack/MoneyManager.svg?style=plastic&)
-![issue_close](https://img.shields.io/github/issues-closed/gitsetgopack/MoneyManager.svg?style=plastic&)
-
-![commits_since_last_project](https://img.shields.io/github/commits-since/gitsetgopack/MoneyManager/v2023.f.3.svg?style=plastic&)
-![repo_size](https://img.shields.io/github/repo-size/gitsetgopack/MoneyManager?style=plastic&)
-![forks](https://img.shields.io/github/forks/gitsetgopack/MoneyManager?style=plastic&)
-![stars](https://img.shields.io/github/stars/gitsetgopack/MoneyManager?style=plastic&)
-![downloads](https://img.shields.io/github/downloads/gitsetgopack/MoneyManager/total?style=plastic&)
+![pr_open](https://img.shields.io/github/issues-pr/Gunabana/MoneyManager?style=plastic&)
+![pr_close](https://img.shields.io/github/issues-pr-closed/Gunabana/MoneyManager?style=plastic&)
+![issue_open](https://img.shields.io/github/issues/Gunabana/MoneyManager.svg?style=plastic&)
+![issue_close](https://img.shields.io/github/issues-closed/Gunabana/MoneyManager.svg?style=plastic&)
+<!-- TODO: UPDATED # COMMITS -->
+![commits_since_last_project](https://img.shields.io/github/commits-since/gitsetgopack/MoneyManager/v2024.f.2-alpha.svg?style=plastic&)
+![repo_size](https://img.shields.io/github/repo-size/Gunabana/MoneyManager?style=plastic&)
+![forks](https://img.shields.io/github/forks/Gunabana/MoneyManager?style=plastic&)
+![stars](https://img.shields.io/github/stars/Gunabana/MoneyManager?style=plastic&)
+![downloads](https://img.shields.io/github/downloads/Gunabana/MoneyManager/total?style=plastic&)
 
 #### Tools & Technologies
-
 [![Python](https://img.shields.io/badge/python%203.12-3670A0?logo=python&logoColor=ffdd54)](https://www.python.org/downloads/release/python-3121/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-%234ea94b.svg?logo=mongodb&logoColor=white)](https://www.mongodb.com/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-009485.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=fff)](https://www.docker.com/)
 [![GitHub](https://img.shields.io/badge/github-%23121011.svg?logo=github&logoColor=white)](https://github.com/)
 [![GitHub Actions](https://img.shields.io/badge/github%20actions-%232671E5.svg?logo=githubactions&logoColor=white)](https://github.com/features/actions)
 [![Linux](https://img.shields.io/badge/Linux-FCC624?logo=linux&logoColor=black)](https://www.linux.org/)
 [![Visual Studio Code](https://img.shields.io/badge/Visual%20Studio%20Code-0078d7.svg?logo=visual-studio-code&logoColor=white)](https://code.visualstudio.com/)
-[![Zoom](https://img.shields.io/badge/Zoom-2D8CFF?logo=zoom&logoColor=white)](https://www.zoom.com/)
-[![DigitalOcean](https://img.shields.io/badge/DigitalOcean-%230167ff.svg?logo=digitalOcean&logoColor=white)]([#](https://www.digitalocean.com/))
 [![ChatGPT](https://img.shields.io/badge/ChatGPT-74aa9c?logo=openai&logoColor=white)](https://chatgpt.com/)
 
 ---
 
 ## Features
-
 - **Expense Tracking**: Add, update, and delete expenses. Track expenses by category, date, and account.
 - **Data Visualization**: View your expenses over time with customizable charts, including:
   - Monthly and weekly spending trends
@@ -110,21 +121,24 @@ Each tool is an essential part of the development and deployment process, enhanc
 
 ## Installation
 
-### Pre-requisite Tasks
+### Webapp
+Please refer to the [INSTALL.md](INSTALL.md) file.
 
-To get started, you'll need to create a Telegram bot through BotFather:
+### Telegram: Preinstall
+
+You'll need to create a Telegram bot through BotFather:
 
 1. Open the Telegram app (desktop or mobile), search for "BotFather," and click on "Start."
 2. Send the following command to BotFather:
 ```bash
 /newbot
-``` 
+```
 4. Follow the instructions to:
 - Choose a name for your bot.
 - Select a username ending with "bot" (required by Telegram).
 5. BotFather will confirm your bot's creation and provide an HTTP API access token—save this token for later.
 
-### Actual Installation
+### Telegram: Installation
 
 These instructions guide you through setting up the bot's communication and running it:
 
@@ -171,7 +185,7 @@ To check code coverage locally:
 
 ## Configuration
 
-For **users**, no additional configuration is required—just start using MoneyManager! 
+For **users**, no additional configuration is required—just start using MoneyManager!
 
 For **contributors**, we’ve designed the system to be as modular as possible, so that updates to one module won’t impact others. However, there are a few configurable parameters available to help tailor and extend the system:
 
@@ -207,8 +221,13 @@ By contributing to MoneyManager, you agree that your contributions will fall und
 
 ## 🤝 Contributors
 
-Listed alphabetically:
+Current Team:
+- **Brody Bond** ([bbond@ncsu.edu](mailto:bbond@ncsu.edu))
+- **Tristan Hall** ([tdhall6@ncsu.edu](mailto:tdhall6@ncsu.edu))
+- **Chaitanya Nagulapalli** ([cknagula@ncsu.edu](mailto:cknagula@ncsu.edu))
 
+
+Prior Team:
 - **Abhishek Rao** ([arao23@ncsu.edu](mailto:arao23@ncsu.edu))
 - **Astha Bhalodiya** ([abhalod@ncsu.edu](mailto:abhalod@ncsu.edu))
 - **Umang Diyora** ([udiyora@ncsu.edu](mailto:udiyora@ncsu.edu))
@@ -220,4 +239,3 @@ Please note that we have a [Code of Conduct](CODE_OF_CONDUCT.md) that all contri
 ---
 
 Thank you for using MoneyManager! Follow this page to stay updated on new features and improvements.
-

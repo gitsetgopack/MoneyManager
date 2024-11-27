@@ -11,10 +11,21 @@ install: ## Install dependencies in the virtual environment
 run: ## Run the FastAPI app using the virtual environment
 	python api/app.py
 
+start_database: ## make and run the database
+	docker run --name mongo-MM -p 27017:27017 -d mongo:latest
+	@sleep 5  # Wait for MongoDB to be ready
+
+stop_database: ## stop the database
+	docker stop mongo-MM
+
+clear_database: ## clear the database
+	docker stop mongo-MM
+	docker rm mongo-MM
+
 test: ## Start MongoDB Docker container, run tests, and clean up
 	docker run --name mongo-test -p 27017:27017 -d mongo:latest
 	@sleep 5  # Wait for MongoDB to be ready
-	pytest -v || (docker stop mongo-test && docker rm mongo-test && exit 1)
+	pytest --cov=api --cov-report=json:tmp/coverage.json --junitxml=tmp/pytest_output.xml -v || (docker stop mongo-test && docker rm mongo-test && exit 1)
 	docker stop mongo-test
 	docker rm mongo-test
 
